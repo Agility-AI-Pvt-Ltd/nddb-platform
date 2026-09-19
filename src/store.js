@@ -1,0 +1,151 @@
+import { createContext, useContext } from "react";
+import { seed } from "./data.js";
+
+/* ============================================================
+   STORE — one reducer. Every screen reads from it, so an
+   approval on one tab moves the numbers on all the others.
+   ============================================================ */
+export const KEY = "nddb.epp.v1";
+const nowStamp = () => {
+  const d = new Date();
+  return "Today " + String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0");
+};
+let uid = 0; const nid = p => p + "_" + (++uid) + "_" + Date.now().toString(36);
+
+function logged(s, what, who, tag){
+  return {...s, log:[{id:nid("l"), what, who:who||"R. Kulkarni", when:nowStamp(), tag:tag||"change"}, ...s.log]};
+}
+
+export function reducer(s, a){
+  switch(a.type){
+
+    /* --- deliverables (planning tab) --- */
+    case "DELIV": {
+      const list = s.deliverables[a.mid].map(d =>
+        d.id===a.did ? {...d, status:a.status, note:a.status==="Returned"?("Returned: "+a.remarks):null, owner:d.owner} : d);
+      let t = {...s, deliverables:{...s.deliverables, [a.mid]:list}};
+      const d = list.find(x=>x.id===a.did);
+      return logged(t, `${a.mid} deliverable “${d.name}” set to ${a.status}`, s.user.name, "deliverable");
+    }
+
+    /* --- milestone status --- */
+    case "MSTATUS": {
+      const ms = s.milestones.map(m => m.id===a.mid ? {...m, status:a.status, holdReason:a.reason||null} : m);
+      return logged({...s, milestones:ms}, `Milestone ${a.mid} moved to ${a.status}` + (a.reason?` — ${a.reason}`:""), s.user.name, "milestone");
+    }
+
+    /* --- approval chain step --- */
+    case "CHAIN": {
+      const ch = s.gate3chain.map((c,i) => i===a.i ? {...c, state:a.state} : c);
+      return logged({...s, gate3chain:ch}, `Gate 3 ${s.gate3chain[a.i].step.toLowerCase()} by ${s.gate3chain[a.i].who}`, s.user.name, "approval");
+    }
+
+    /* --- gate decision --- */
+    case "GATE_APPROVE": {
+      const ms = s.milestones.map(m => m.id===a.mid ? {...m, status:"Approved", frozen:true} : m);
+      const ch = s.gate3chain.map(c => c.state==="Pending"||c.state==="Waiting" ? {...c, state:"Done "+nowStamp().replace("Today ","today ")} : c);
+      // unblock everything the gate was holding
+      const pk = s.packages.map(p => p.blockedByGate===3 ? {...p, blockedByGate:null, waiting:"Cleared by gate 3"} : p);
+      let t = {...s, milestones:ms, gate3chain:ch, packages:pk,
+        actions:s.actions.filter(x=>x.id!=="t1"),
+        approvalsWaiting:s.approvalsWaiting,
+        gateApproved:{...(s.gateApproved||{}), 3:true}};
+      t = logged(t, "Gate 3 approved — BOQ frozen at revision 4, tender T-118 unblocked, Q4 funds Rs 42 cr released", s.user.name, "approval");
+      return t;
+    }
+    case "GATE_RETURN": {
+      const ms = s.milestones.map(m => m.id===a.mid ? {...m, status:"Returned", returnRemarks:a.remarks} : m);
+      const ch = s.gate3chain.map(c => c.step==="Prepared" ? {...c, state:"Returned, redo"} : c);
+      let t = {...s, milestones:ms, gate3chain:ch};
+      return logged(t, `Gate 3 returned to preparer — ${a.remarks}`, s.user.name, "approval");
+    }
+    case "GATE_REJECT": {
+      const ms = s.milestones.map(m => m.id===a.mid ? {...m, status:"On hold", holdReason:a.remarks} : m);
+      return logged({...s, milestones:ms}, `Gate 3 rejected — ${a.remarks}`, s.user.name, "approval");
+    }
+    case "CHECK": {
+      const c = {...(s.checks||{})}; c[a.id] = a.on;
+      return {...s, checks:c};
+    }
+
+    /* --- bid verification --- */
+    case "FIELD": {
+      const fl = s.bid.fields.map(f => f.id===a.id
+        ? {...f, state:"verified", value:a.value, by:s.user.name, mode:a.mode} : f);
+      const left = fl.filter(f=>f.state!=="verified").length;
+      let t = {...s, bid:{...s.bid, fields:fl}};
+      if(left===0) t = {...t, actions:t.actions.filter(x=>x.id!=="t3")};
+      const f = fl.find(x=>x.id===a.id);
+      return logged(t, `Bid field “${f.name}” ${a.mode==="correct"?"corrected to":"accepted as"} ${a.value}`, s.user.name, "verification");
+    }
+
+    /* --- interface notices --- */
+    case "DRAFT_NOTICE": {
+      const it = s.interfaces.find(x=>x.id===a.id);
+      const n = {id:nid("n"), ref:"HN-"+(s.notices.length+21), iface:it.name, owes:it.owes,
+                 state:"Drafted", body:a.body, when:nowStamp()};
+      return logged({...s, notices:[n, ...s.notices]}, `Hindrance notice drafted for “${it.name}”`, s.user.name, "notice");
+    }
+    case "SIGN_NOTICE": {
+      const ns = s.notices.map(n => n.id===a.id ? {...n, state:"Served", servedAt:nowStamp()} : n);
+      const it = s.interfaces.map(i => i.name===a.iface ? {...i, noticeServed:true} : i);
+      let t = {...s, notices:ns, interfaces:it, actions:s.actions.filter(x=>x.id!=="t2")};
+      return logged(t, `Notice served for “${a.iface}” — claims exposure closed`, s.user.name, "notice");
+    }
+
+    /* --- site capture --- */
+    case "SITE": {
+      const rep = s.siteReports.map(r => r.pkg.startsWith(a.pkg) ? {...r, at:nowStamp(), state:"Submitted"} : r);
+      let t = {...s, siteReports:rep,
+        siteSubmissions:[{id:nid("s"), ...a.payload, pkg:a.pkg, when:nowStamp()}, ...s.siteSubmissions],
+        queued:Math.max(0, s.queued - (a.synced?1:0))};
+      if(a.pkg.startsWith("E-02")) t = {...t, actions:t.actions.filter(x=>x.id!=="t6")};
+      return logged(t, `${a.kind} captured at ${a.pkg} — ${a.summary}`, "Site engineer", "site");
+    }
+    case "HANDOVER": {
+      const it = s.interfaces.map(i => i.id===a.ifaceId ? {...i, state:"Handed over", sev:"g", closed:true} : i);
+      return logged({...s, interfaces:it,
+        handovers:[{id:nid("h"), ...a.payload, when:nowStamp()}, ...s.handovers]},
+        `Interface hand-over recorded and signed by both parties — ${a.payload.what}`, "Site engineer", "site");
+    }
+    case "SYNC": return logged({...s, queued:0}, "Offline queue synced, 3 items uploaded with geotag and time", "Site engineer", "site");
+
+    /* --- record / change request --- */
+    case "CHANGE_REQ": {
+      const h = {id:nid("h"), what:a.what, when:nowStamp(), who:s.user.name, why:"Reason: "+a.reason,
+                 before:a.before, after:a.after, fresh:true};
+      const sys = {id:nid("h"), what:"Marked "+a.impacts+" for review", when:nowStamp(), who:"System", fresh:true};
+      return logged({...s, history:[sys, h, ...s.history], record:{...s.record, qty:a.newQty||s.record.qty,
+        lastBy:s.user.name, lastWhen:"just now"}, changesThisWeek:s.changesThisWeek+1},
+        a.what, s.user.name, "change");
+    }
+
+    /* --- approvals on project home --- */
+    case "CLEAR_APPROVAL": {
+      const ap = s.approvalsWaiting.filter(x=>x.id!==a.id);
+      const item = s.approvalsWaiting.find(x=>x.id===a.id);
+      return logged({...s, approvalsWaiting:ap}, `${item.what} — ${a.decision}`, s.user.name, "approval");
+    }
+    case "RESOLVE": return logged({...s, actions:s.actions.filter(x=>x.id!==a.id)}, a.note, s.user.name, "action");
+
+    /* --- package stage --- */
+    case "STAGE": {
+      const pk = s.packages.map(p => p.id===a.id ? {...p, stage:a.stage, waiting:a.waiting||p.waiting} : p);
+      return logged({...s, packages:pk}, `Package ${a.id} moved to ${a.stage}`, s.user.name, "tender");
+    }
+
+    case "RESET": return seed();
+    default: return s;
+  }
+}
+
+export function load(){
+  try{
+    const raw = localStorage.getItem(KEY);
+    if(raw){ const p = JSON.parse(raw); if(p && p.projects) return p; }
+  }catch(e){}
+  return seed();
+}
+
+export const Ctx = createContext(null);
+export const useStore = () => useContext(Ctx);
