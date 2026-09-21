@@ -1,5 +1,6 @@
 import { createContext, useContext } from "react";
-import { seed } from "./data.js";
+import { seed, seedFresh, blankPortfolioProject } from "./data.js";
+import { applyExample, exampleLabel } from "./demoExamples.js";
 
 /* ============================================================
    STORE — one reducer. Every screen reads from it, so an
@@ -135,6 +136,26 @@ export function reducer(s, a){
     }
 
     case "RESET": return seed();
+    case "RESET_FRESH": return seedFresh();
+    case "LOAD_EXAMPLE": {
+      const next = applyExample(s, a.key);
+      return logged(
+        next,
+        `Example loaded: ${exampleLabel(a.key)}`,
+        s.user.name,
+        "demo",
+      );
+    }
+    case "ADD_PROJECT": {
+      const index = s.projects.length + 1;
+      const project = a.project || blankPortfolioProject(index);
+      return logged(
+        { ...s, projects: [...s.projects, project] },
+        `Project “${project.name}” added to portfolio`,
+        s.user.name,
+        "demo",
+      );
+    }
     default: return s;
   }
 }

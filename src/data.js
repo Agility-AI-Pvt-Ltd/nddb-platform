@@ -4,6 +4,7 @@
    wireframe states but does not draw (e.g. "7 of 8 deliverables").
    ============================================================ */
 export const seed = () => ({
+  demoMode:"wireframe",
   user:{initials:"RK", name:"R. Kulkarni", role:"Project head"},
 
   projects:[
@@ -255,4 +256,116 @@ export const seed = () => ({
             state:"Drafted", when:"Yesterday 16:12",
             body:"Hindrance notice under clause 8.3.\nInterface: Foundations → mech. erection\nResponsibility: C-01 owes M-02\nStatus: Late 6 days\nEvidence: interface register entry, daily progress reports and site hand-over record for grid C4–C7.\nAction required: complete the owed work within the contract notice period."}],
   siteSubmissions:[], handovers:[],
+});
+
+/** Portfolio row for a new greenfield project (appends to `projects`; detail tabs still use `projects[0]`). */
+export function blankPortfolioProject(index = 2) {
+  return {
+    id: `p-fresh-${index}`,
+    name: `Greenfield project ${index}`,
+    long: `Greenfield project ${index}`,
+    phase: "Planning",
+    portfolioPhase: "Planning",
+    current: "M1: not started",
+    time: { l: "G", v: "not started" },
+    cost: { l: "G", v: "on est." },
+    claims: "—",
+    capacity: "To be confirmed",
+    sanctioned: 85.0,
+    committed: 0,
+    billed: 0,
+    paid: 0,
+    measured: 0,
+    forecastCost: 85.0,
+    start: "To be set",
+    handover: "To be set",
+    forecast: "To be set",
+    packages: 0,
+    head: "R. Kulkarni",
+    milestonesDone: 0,
+    milestonesTotal: 4,
+  };
+}
+
+/** Empty-ish portfolio project — load example slices from Admin to walk each flow. */
+export const seedFresh = () => ({
+  demoMode:"fresh",
+  user:{initials:"RK", name:"R. Kulkarni", role:"Project head"},
+
+  projects:[
+    {id:"p-new", name:"New greenfield project", long:"New greenfield project", phase:"Planning",
+     portfolioPhase:"Planning", current:"M1: requirement and mass balance",
+     time:{l:"G", v:"not started"}, cost:{l:"G", v:"on est."}, claims:"—",
+     capacity:"To be confirmed", sanctioned:120.0, committed:0, billed:0, paid:0,
+     measured:0, forecastCost:120.0,
+     start:"To be set", handover:"To be set", forecast:"To be set",
+     packages:0, head:"R. Kulkarni", milestonesDone:0, milestonesTotal:4},
+  ],
+
+  milestones:[
+    {id:"M1", code:"M1", title:"Requirement and mass balance", gate:false, status:"In progress", target:"Set target"},
+    {id:"M2", code:"M2", title:"Basic engineering", gate:true, status:"Not started", target:"—", gateNo:2},
+    {id:"M3", code:"M3", title:"Detailed estimate and BOQ", gate:true, status:"Not started", target:"—",
+     gateNo:3, estimate:null, sanction:120.0},
+    {id:"M4", code:"M4", title:"Package strategy approved", gate:true, status:"Not started", target:"—", gateNo:4},
+  ],
+  deliverables:{
+    M1:[{id:"d101",name:"Process requirement note",status:"Not started",owner:"Assign owner"},
+        {id:"d102",name:"Mass balance sheet",status:"Not started",owner:"Assign owner"}],
+    M2:[{id:"d201",name:"Basic engineering package",status:"Not started",owner:"—"}],
+    M3:[{id:"d301",name:"Detailed BOQ",status:"Not started",owner:"—"}],
+    M4:[{id:"d401",name:"Package split matrix",status:"Not started",owner:"—"}],
+  },
+  gate3chain:[
+    {step:"Prepared", who:"—", state:"Waiting"},
+    {step:"Checked", who:"—", state:"Waiting"},
+    {step:"Recommended", who:"—", state:"Waiting"},
+    {step:"Approved", who:"—", state:"Waiting"},
+  ],
+  gate3blocks:[],
+  gate3consequences:["Freeze the BOQ at the approved revision","Unblock tender packages","Release staged funds per fund flow"],
+  gate3checklist:[
+    {id:"c1", label:"All deliverables approved", auto:"deliverables"},
+    {id:"c2", label:"Estimate within sanction", auto:"estimate"},
+    {id:"c3", label:"Rate basis dated within 6 months", auto:null},
+    {id:"c4", label:"Package strategy comparison attached", auto:null},
+  ],
+
+  stages:["Scoping","Tender ready","Published on GeM","Bids received","Evaluation","Awarded"],
+  packages:[],
+  pkgMilestones:{},
+  tenderCalendar:[],
+  vendors:[],
+
+  bid:{tender:"—", bidder:"—", totalFields:0, page:1, pages:1, boq:[], fields:[], otherBidders:0},
+
+  exec:{physical:0, plan:0, timeSlip:0, baseline:"—", interfacesTotal:0},
+  schedule:[],
+  interfaces:[],
+  siteReports:[],
+  bills:[],
+  hindrances:[],
+
+  expenses:[{pkg:"Project (no packages yet)", budget:120.0, committed:0, measured:0, billed:0, paid:0, forecast:120.0}],
+  split:{turnkey:0, direct:0, integration:0},
+  cashflow:[],
+
+  record:{id:"—", title:"No BOQ line selected", state:"not created",
+    lastBy:"—", lastWhen:"—", qty:null, rate:null, impacted:[], watchers:[]},
+  history:[],
+
+  nextMilestones:[],
+  approvalsWaiting:[],
+  changesThisWeek:0,
+  weekChanges:[],
+
+  actions:[],
+  queued:0,
+  documents:[],
+  log:[],
+  notices:[],
+  siteSubmissions:[],
+  handovers:[],
+  checks:{},
+  gateApproved:{},
 });

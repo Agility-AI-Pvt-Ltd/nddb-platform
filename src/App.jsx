@@ -1,5 +1,6 @@
 import { useState, useEffect, useReducer, useRef } from "react";
 import { reducer, load, Ctx, useStore, KEY } from "./store.js";
+import { exampleLabel } from "./demoExamples.js";
 import { sel } from "./selectors.js";
 import { Crumb, Card } from "./ui.jsx";
 import { MyActions } from "./screens/MyActions.jsx";
@@ -74,10 +75,25 @@ export function App() {
     setRoute({ screen, params });
     return true;
   };
-  const reset = () => {
+  const resetWireframe = () => {
     d({ type: "RESET" });
     toast("Demo data reset to the wireframe figures");
     go("actions");
+  };
+  const startFreshDemo = () => {
+    d({ type: "RESET_FRESH" });
+    toast(
+      "Fresh demo started — use Admin to load example scenarios as you walk the platform",
+    );
+    go("project", { tab: "planning" });
+  };
+  const loadExample = (key) => {
+    d({ type: "LOAD_EXAMPLE", key });
+    toast(`Loaded example: ${exampleLabel(key)}`);
+  };
+  const addExampleProject = () => {
+    d({ type: "ADD_PROJECT" });
+    toast("Example project added to the end of the portfolio list");
   };
 
   const p = s.projects[0];
@@ -109,7 +125,13 @@ export function App() {
       case "actions":
         return <MyActions go={go} />;
       case "portfolio":
-        return <Portfolio go={go} />;
+        return (
+          <Portfolio
+            go={go}
+            startFreshDemo={startFreshDemo}
+            addExampleProject={addExampleProject}
+          />
+        );
       case "bid":
         return <BidVerify go={go} />;
       case "record":
@@ -121,7 +143,13 @@ export function App() {
       case "reports":
         return <ReportsScreen go={go} />;
       case "admin":
-        return <AdminScreen reset={reset} />;
+        return (
+          <AdminScreen
+            resetWireframe={resetWireframe}
+            startFreshDemo={startFreshDemo}
+            loadExample={loadExample}
+          />
+        );
       case "project":
         return <ProjectScreen go={go} tab={tab} params={route.params} />;
       default:
@@ -147,8 +175,10 @@ export function App() {
               {route.screen === "project" ||
               route.screen === "bid" ||
               route.screen === "record"
-                ? p.name
-                : "All projects"}
+                ? p.name + (s.demoMode === "fresh" ? " · fresh demo" : "")
+                : s.demoMode === "fresh"
+                  ? "Fresh demo"
+                  : "All projects"}
             </span>
             <span className="avatar" title={s.user.name}>
               {s.user.initials}

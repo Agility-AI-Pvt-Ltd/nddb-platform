@@ -5,7 +5,7 @@ import { Card, Letter, Empty } from "../ui.jsx";
 /* ============================================================
    02 · PORTFOLIO — all projects
    ============================================================ */
-export function Portfolio({go}){
+export function Portfolio({ go, startFreshDemo, addExampleProject }) {
   const {s} = useStore();
   const [phase,setPhase] = useState("all");
   const [status,setStatus] = useState("all");
@@ -14,13 +14,38 @@ export function Portfolio({go}){
     (phase==="all" || p.portfolioPhase===phase) &&
     (status==="all" || (status==="at risk" ? p.time.l!=="G" : p.time.l==="G")) &&
     (q==="" || p.name.toLowerCase().includes(q.toLowerCase())));
-  const openApprovals = p => p.id==="p1" ? s.approvalsWaiting.length : ({p2:5,p3:1,p4:2})[p.id];
+  const openApprovals = (p) => {
+    if (p.id === "p1" || p.id === "p-new") return s.approvalsWaiting.length;
+    if (String(p.id).startsWith("p-fresh-")) return 0;
+    return ({ p2: 5, p3: 1, p4: 2 })[p.id] ?? 0;
+  };
+  const onFresh = () => {
+    if (!startFreshDemo) return;
+    if (window.confirm(
+      "Start a fresh demo with one new project and no prefilled activity? You can load examples from Admin as you go.",
+    )) startFreshDemo();
+  };
 
   return <>
     <h1 className="page">Portfolio</h1>
     <p className="lead">All projects. Time and cost use one status letter plus the number behind it,
       so the table stays readable in black and white.</p>
-    <Card title="Projects" right={<button className="btn sm">New project</button>} pad={false}>
+    <Card
+      title="Projects"
+      right={
+        <div className="row" style={{ gap: 6, flexWrap: "wrap" }}>
+          {s.demoMode === "fresh" && addExampleProject && (
+            <button className="btn sm" type="button" onClick={addExampleProject}>
+              Add example project
+            </button>
+          )}
+          <button className="btn sm" type="button" onClick={onFresh}>
+            Start fresh demo
+          </button>
+        </div>
+      }
+      pad={false}
+    >
       <div className="card-b" style={{display:"flex",gap:8,flexWrap:"wrap",borderBottom:"1px solid var(--rule)"}}>
         <input className="search" style={{maxWidth:200}} placeholder="Filter by name" value={q} onChange={e=>setQ(e.target.value)}/>
         <select style={{width:"auto"}} value={phase} onChange={e=>setPhase(e.target.value)}>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useStore } from "../store.js";
 import { sel } from "../selectors.js";
 import { Card, Empty } from "../ui.jsx";
@@ -8,8 +8,12 @@ import { Card, Empty } from "../ui.jsx";
    ============================================================ */
 export function TenderTab({go}){
   const {s, d, toast} = useStore();
-  const [pick,setPick] = useState("M-03");
-  const pkg = s.packages.find(p=>p.id===pick);
+  const [pick,setPick] = useState(() => s.packages[0]?.id ?? null);
+  useEffect(() => {
+    if (pick && s.packages.some((p) => p.id === pick)) return;
+    setPick(s.packages[0]?.id ?? null);
+  }, [s.packages, pick]);
+  const pkg = pick ? s.packages.find(p=>p.id===pick) : null;
   const steps = (s.pkgMilestones[pick] || {steps:[]}).steps;
   const unv = sel.unverified(s);
 
@@ -39,14 +43,15 @@ export function TenderTab({go}){
     </Card>
 
     <div className="two" style={{marginTop:12}}>
-      <Card title={"Package "+pick+" milestones"} sub={(s.pkgMilestones[pick]||{}).sub || `${pkg.name}, estimate Rs ${pkg.est.toFixed(1)} cr`} pad={false}>
-        {steps.length>0 ? steps.map(st=>
+      <Card title={pick ? "Package "+pick+" milestones" : "Package milestones"} sub={(pick && (s.pkgMilestones[pick]||{}).sub) || (pkg ? `${pkg.name}, estimate Rs ${pkg.est.toFixed(1)} cr` : "Select a package from the pipeline")} pad={false}>
+        {!pkg && <Empty>No packages in the pipeline yet. Load the tender example from Admin, or add packages after Gate 3 is approved.</Empty>}
+        {pkg && steps.length>0 ? steps.map(st=>
           <div className="lrow" key={st.name}>
             <div style={{flex:1}} className="t">{st.name}</div>
             <span className={"pill "+(st.state.startsWith("Done")?"g":st.state==="In progress"?"a":"n")}>{st.state}</span>
           </div>)
-          : <Empty>Package milestones are created when the package leaves scoping. {pick} is at “{pkg.waiting}”.</Empty>}
-        {pick==="M-03" && <div className="card-b" style={{borderTop:"1px solid var(--rule)"}}>
+          : pkg ? <Empty>Package milestones are created when the package leaves scoping. {pick} is at “{pkg.waiting}”.</Empty> : null}
+        {pick==="M-03" && pkg && <div className="card-b" style={{borderTop:"1px solid var(--rule)"}}>
           <button className="btn pri sm" onClick={()=>go("bid")}>
             {unv>0 ? `Verify ${unv} bid fields` : "Open comparative statement"}
           </button>

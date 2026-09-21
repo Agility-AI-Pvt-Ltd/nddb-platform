@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useStore } from "../store.js";
 import { sel } from "../selectors.js";
-import { Card, Crumb } from "../ui.jsx";
+import { Card, Crumb, Empty } from "../ui.jsx";
 
 /* ============================================================
    07 · BID VERIFICATION — source beside the field
@@ -14,6 +14,17 @@ export function BidVerify({go}){
   const [edit,setEdit] = useState(null);
   const [draft,setDraft] = useState("");
   const active = b.fields.find(f=>f.id===cur) || b.fields[0];
+
+  if (!b.fields.length) {
+    return <>
+      <Crumb parts={[{t:"Tender", go:()=>go("project",{tab:"tender"})},{t:"Bid evaluation"}]}/>
+      <h1 className="page">Bid verification</h1>
+      <Card title="No bid loaded">
+        <Empty>Load the “Tender pipeline &amp; bid” example from Admin, or open a package evaluation from the tender tab.</Empty>
+        <button className="btn" style={{marginTop:10}} type="button" onClick={()=>go("project",{tab:"tender"})}>Back to project</button>
+      </Card>
+    </>;
+  }
 
   const accept = f => { d({type:"FIELD",id:f.id,value:f.value,mode:"accept"}); toast("Accepted from page "+f.page);
     const nx = b.fields.find(x=>x.state!=="verified" && x.id!==f.id); setCur(nx?nx.id:f.id); };
