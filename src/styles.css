@@ -1185,3 +1185,45 @@ textarea {
     background: transparent;
   }
 }
+
+/* CadPilot P&ID */
+.cadpilot-preview {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--dash);
+  padding: 10px;
+  overflow: auto;
+  max-height: 420px;
+}
+.cadpilot-preview svg {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+.cadpilot-preview-img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--dash);
+}
+.cadpilot-raw {
+  margin: 0;
+  padding: 10px 12px;
+  background: var(--fill);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  overflow: auto;
+  max-height: 320px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+input[type="file"] {
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  color: var(--ink);
+}

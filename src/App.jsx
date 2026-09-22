@@ -21,12 +21,14 @@ import { ExpensesTab } from "./screens/Expenses.jsx";
 import { TimelineTab, DocumentsTab, ChangesTab } from "./screens/Misc.jsx";
 import { RecordScreen } from "./screens/Record.jsx";
 import { SiteCapture } from "./screens/Site.jsx";
+import { CadPilotScreen } from "./screens/CadPilot.jsx";
 import { VendorsScreen, ReportsScreen, AdminScreen } from "./screens/Other.jsx";
 
 const NAV = [
   ["My actions", "actions"],
   ["Portfolio", "portfolio"],
   ["Project", "project"],
+  ["CadPilot", "cadpilot"],
   ["Vendors", "vendors"],
   ["Reports", "reports"],
   ["Admin", "admin"],
@@ -136,6 +138,8 @@ export function App() {
         return <BidVerify go={go} />;
       case "record":
         return <RecordScreen go={go} />;
+      case "cadpilot":
+        return <CadPilotScreen go={go} />;
       case "site":
         return <SiteCapture go={go} />;
       case "vendors":
