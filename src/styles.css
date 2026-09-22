@@ -1,57 +1,57 @@
 :root {
-  --bg: #f6f7f8;
+  --bg: #ffffff;
   --card: #ffffff;
-  --ink: #111827;
-  --mut: #6b7280;
-  --rule: #e5e7eb;
-  --acc: #c2410c;
-  --fill: #f3f4f6;
-  --dash: #fafafa;
-  --g: #15803d;
+  --ink: #0b1220;
+  --mut: #334155;
+  --rule: #bfdbfe;
+  --acc: #2563eb;
+  --fill: #f8fbff;
+  --dash: #f0f7ff;
+  --g: #047857;
   --a: #b45309;
   --r: #b91c1c;
   --gbg: #ecfdf5;
   --abg: #fffbeb;
   --rbg: #fef2f2;
-  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow: 0 1px 2px rgba(37, 99, 235, 0.06);
+  color-scheme: light;
 }
-:root[data-theme="dark"],
-:root:not([data-theme="light"]) {
-}
+/* Keep a single light theme — no dark-mode override */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0d1117;
-    --card: #161b22;
-    --ink: #e6edf3;
-    --mut: #9198a1;
-    --rule: #30363d;
-    --acc: #f97316;
-    --fill: #1c222b;
-    --dash: #12171e;
-    --g: #3fb950;
-    --a: #d29922;
-    --r: #f85149;
-    --gbg: #11241a;
-    --abg: #241e10;
-    --rbg: #2a1416;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  :root {
+    --bg: #ffffff;
+    --card: #ffffff;
+    --ink: #0b1220;
+    --mut: #334155;
+    --rule: #bfdbfe;
+    --acc: #2563eb;
+    --fill: #f8fbff;
+    --dash: #f0f7ff;
+    --g: #047857;
+    --a: #b45309;
+    --r: #b91c1c;
+    --gbg: #ecfdf5;
+    --abg: #fffbeb;
+    --rbg: #fef2f2;
+    --shadow: 0 1px 2px rgba(37, 99, 235, 0.06);
   }
 }
 :root[data-theme="dark"] {
-  --bg: #0d1117;
-  --card: #161b22;
-  --ink: #e6edf3;
-  --mut: #9198a1;
-  --rule: #30363d;
-  --acc: #f97316;
-  --fill: #1c222b;
-  --dash: #12171e;
-  --g: #3fb950;
-  --a: #d29922;
-  --r: #f85149;
-  --gbg: #11241a;
-  --abg: #241e10;
-  --rbg: #2a1416;
+  --bg: #ffffff;
+  --card: #ffffff;
+  --ink: #0b1220;
+  --mut: #334155;
+  --rule: #bfdbfe;
+  --acc: #2563eb;
+  --fill: #f8fbff;
+  --dash: #f0f7ff;
+  --g: #047857;
+  --a: #b45309;
+  --r: #b91c1c;
+  --gbg: #ecfdf5;
+  --abg: #fffbeb;
+  --rbg: #fef2f2;
+  --shadow: 0 1px 2px rgba(37, 99, 235, 0.06);
 }
 * {
   box-sizing: border-box;
@@ -60,6 +60,7 @@ html,
 body {
   margin: 0;
   padding: 0;
+  background: #ffffff;
 }
 body {
   background: var(--bg);
@@ -98,6 +99,7 @@ a {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: #ffffff;
 }
 .topbar {
   background: var(--card);
