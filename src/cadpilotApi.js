@@ -12,7 +12,7 @@ const FILE_A_FIELD =
 const FILE_B_FIELD =
   import.meta.env.VITE_CADPILOT_FILE_B_FIELD || "design_data";
 
-const PROXY_BASE = "/api/cadpilot";
+const PROXY_BASE = "/api/cadpilot-proxy";
 const CRM_PUBLIC_URL =
   typeof __CRM_PUBLIC_URL__ !== "undefined" ? __CRM_PUBLIC_URL__ : "";
 const USE_WEBHOOK =
@@ -22,7 +22,7 @@ const USE_WEBHOOK =
 
 function joinPath(path) {
   if (!path.startsWith("/")) path = "/" + path;
-  return PROXY_BASE + path;
+  return PROXY_BASE + "?path=" + encodeURIComponent(path);
 }
 
 async function readBody(res) {

@@ -1,14 +1,8 @@
 {
   "functions": {
-    "api/cadpilot/[...path].js": {
+    "api/cadpilot-proxy.js": {
       "maxDuration": 60,
       "memory": 1024
     }
-  },
-  "rewrites": [
-    {
-      "source": "/((?!api/).*)",
-      "destination": "/index.html"
-    }
-  ]
+  }
 }

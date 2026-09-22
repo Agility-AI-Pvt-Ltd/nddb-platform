@@ -1,10 +1,6 @@
 /**
- * Vercel serverless proxy for CadPilot CRM API.
- * Mirrors the Vite /api/cadpilot proxy used in local `npm run dev`.
- *
- * Browser:  POST /api/cadpilot/api/integrations/crm/projects
- * Upstream: POST {CADPILOT_URL}/api/integrations/crm/projects
- * Auth:     X-API-Key from CADPILOT_CRM_API_KEY (server env only)
+ * Flat Vercel serverless proxy for CadPilot.
+ * Browser calls: /api/cadpilot-proxy?path=/api/integrations/crm/projects
  */
 export const config = {
   api: {
@@ -23,7 +19,7 @@ function readRawBody(req) {
 }
 
 export default async function handler(req, res) {
-  const base = (process.env.CADPILOT_URL || "").replace(/\/$/, "");
+  const base = String(process.env.CADPILOT_URL || "").replace(/\/$/, "");
   const apiKey =
     process.env.CADPILOT_CRM_API_KEY || process.env.CADPILOT_API_KEY || "";
 
@@ -38,24 +34,21 @@ export default async function handler(req, res) {
     return;
   }
 
-  const parts = req.query.path;
-  const suffix = Array.isArray(parts)
-    ? parts.join("/")
-    : parts
-      ? String(parts)
-      : "";
-  if (!suffix) {
-    res.status(400).json({ detail: "Missing CadPilot path" });
+  let suffix = req.query.path || "";
+  if (Array.isArray(suffix)) suffix = suffix[0] || "";
+  suffix = String(suffix);
+  if (!suffix.startsWith("/")) suffix = "/" + suffix;
+  if (suffix === "/") {
+    res.status(400).json({ detail: "Missing path query param" });
     return;
   }
 
-  const qIndex = req.url.indexOf("?");
-  const qs = qIndex >= 0 ? req.url.slice(qIndex) : "";
-  const target = `${base}/${suffix}${qs}`;
+  const target = base + suffix;
 
   const headers = { "X-API-Key": apiKey };
-  const contentType = req.headers["content-type"];
-  if (contentType) headers["Content-Type"] = contentType;
+  if (req.headers["content-type"]) {
+    headers["Content-Type"] = req.headers["content-type"];
+  }
 
   let body;
   if (req.method !== "GET" && req.method !== "HEAD") {
@@ -67,7 +60,6 @@ export default async function handler(req, res) {
       method: req.method,
       headers,
       body: body && body.length ? body : undefined,
-      // CadPilot may be plain http
       redirect: "manual",
     });
 
@@ -80,7 +72,9 @@ export default async function handler(req, res) {
     res.status(upstream.status).send(buf);
   } catch (err) {
     res.status(502).json({
-      detail: "CadPilot proxy error: " + (err.message || String(err)),
+      detail:
+        "CadPilot proxy error: " +
+        (err && err.message ? err.message : String(err)),
     });
   }
 }

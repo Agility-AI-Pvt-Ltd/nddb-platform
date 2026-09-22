@@ -7,11 +7,11 @@ export default defineConfig(({ mode }) => {
   const apiKey =
     env.CADPILOT_CRM_API_KEY || env.CADPILOT_API_KEY || "";
   const crmPublicUrl = (env.CRM_PUBLIC_URL || "").replace(/\/$/, "");
-  const useWebhook = String(env.CADPILOT_USE_WEBHOOK || "").toLowerCase() === "true";
+  const useWebhook =
+    String(env.CADPILOT_USE_WEBHOOK || "").toLowerCase() === "true";
 
   return {
     plugins: [react()],
-    // Expose return/callback URLs to the browser form (not the API key)
     define: {
       __CRM_PUBLIC_URL__: JSON.stringify(crmPublicUrl),
       __CADPILOT_USE_WEBHOOK__: JSON.stringify(useWebhook),
@@ -20,11 +20,18 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       proxy: target
         ? {
-            "/api/cadpilot": {
+            // Same contract as Vercel api/cadpilot-proxy.js
+            "/api/cadpilot-proxy": {
               target,
               changeOrigin: true,
               secure: false,
-              rewrite: (path) => path.replace(/^\/api\/cadpilot/, ""),
+              rewrite: (path) => {
+                const q = path.includes("?")
+                  ? path.slice(path.indexOf("?") + 1)
+                  : "";
+                const params = new URLSearchParams(q);
+                return params.get("path") || "/";
+              },
               configure: (proxy) => {
                 proxy.on("proxyReq", (proxyReq) => {
                   if (apiKey) proxyReq.setHeader("X-API-Key", apiKey);
