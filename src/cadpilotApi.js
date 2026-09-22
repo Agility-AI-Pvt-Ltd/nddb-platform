@@ -20,6 +20,37 @@ const USE_WEBHOOK =
     ? __CADPILOT_USE_WEBHOOK__
     : false;
 
+/** Deep-link back into Planning after CadPilot "Back to CRM". */
+export function getCadpilotReturnUrl() {
+  const origin =
+    (typeof window !== "undefined" && window.location.origin) ||
+    CRM_PUBLIC_URL ||
+    "";
+  return origin.replace(/\/$/, "") + "/#/project/planning";
+}
+
+/**
+ * CadPilot file URLs are http:// — browsers block them on HTTPS pages.
+ * Rewrite to our same-origin proxy so <img> / download work on Vercel.
+ */
+export function proxyCadpilotAssetUrl(absoluteUrl) {
+  if (!absoluteUrl) return null;
+  if (
+    absoluteUrl.startsWith("/api/cadpilot-proxy") ||
+    absoluteUrl.startsWith("blob:") ||
+    absoluteUrl.startsWith("data:")
+  ) {
+    return absoluteUrl;
+  }
+  try {
+    const u = new URL(absoluteUrl, "http://localhost");
+    const pathWithQuery = u.pathname + (u.search || "");
+    return joinPath(pathWithQuery);
+  } catch {
+    return absoluteUrl;
+  }
+}
+
 function joinPath(path) {
   if (!path.startsWith("/")) path = "/" + path;
   return PROXY_BASE + "?path=" + encodeURIComponent(path);
@@ -71,14 +102,15 @@ export async function createPidProject({
   if (workbookA) fd.append(FILE_A_FIELD, workbookA);
   if (workbookB) fd.append(FILE_B_FIELD, workbookB);
 
-  // CadPilot expects return_url (and optional callback_url) from the CRM
-  const returnUrl =
-    CRM_PUBLIC_URL ||
-    (typeof window !== "undefined" ? window.location.origin : "");
+  // CadPilot "Back to CRM" uses return_url — always current origin + planning hash
+  const returnUrl = getCadpilotReturnUrl();
   if (returnUrl) {
     fd.append("return_url", returnUrl);
-    if (USE_WEBHOOK) {
-      fd.append("callback_url", returnUrl.replace(/\/$/, "") + "/webhooks/cadpilot");
+    if (USE_WEBHOOK && CRM_PUBLIC_URL) {
+      fd.append(
+        "callback_url",
+        CRM_PUBLIC_URL.replace(/\/$/, "") + "/webhooks/cadpilot",
+      );
     }
   }
 

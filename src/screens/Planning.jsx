@@ -9,6 +9,7 @@ import {
   newExternalId,
   downloadBlob,
   downloadBase64,
+  proxyCadpilotAssetUrl,
 } from "../cadpilotApi.js";
 
 /* ============================================================
@@ -342,9 +343,9 @@ function CadPilotDesignPanel() {
   };
 
   const openCadPilot = () => {
-    if (pid?.launch_url) {
-      window.open(pid.launch_url, "_blank", "noopener,noreferrer");
-    }
+    if (!pid?.launch_url) return;
+    // Same tab so CadPilot "Back to CRM" returns here instead of opening another tab
+    window.location.assign(pid.launch_url);
   };
 
   const onDownloadDxf = async () => {
@@ -357,7 +358,12 @@ function CadPilotDesignPanel() {
         return;
       }
       if (pid?.dxf_url) {
-        window.open(pid.dxf_url, "_blank", "noopener,noreferrer");
+        const res = await fetch(proxyCadpilotAssetUrl(pid.dxf_url));
+        if (!res.ok) throw new Error("DXF download failed (" + res.status + ")");
+        downloadBlob(
+          await res.blob(),
+          pid.dxf_filename || (pid.name || "drawing") + ".dxf",
+        );
         return;
       }
       const id = pid?.external_id;
@@ -430,12 +436,7 @@ function CadPilotDesignPanel() {
             Waiting for the engineer to generate the draft in CadPilot.
           </p>
           <div className="row" style={{ gap: 8, flexWrap: "wrap" }}>
-            <button
-              className="btn pri"
-              type="button"
-              disabled={!pid.launch_url}
-              onClick={openCadPilot}
-            >
+            <button className="btn pri" type="button" onClick={openCadPilot}>
               Open in CadPilot
             </button>
             <button className="btn" type="button" onClick={refreshStatus}>
@@ -477,14 +478,7 @@ function CadPilotDesignPanel() {
           {pid.svg_url ? (
             <img
               className="cadpilot-preview-img"
-              src={
-                pid.svg_url +
-                (pid.revision
-                  ? (pid.svg_url.includes("?") ? "&" : "?") +
-                    "rev=" +
-                    encodeURIComponent(pid.revision)
-                  : "")
-              }
+              src={proxyCadpilotAssetUrl(pid.svg_url)}
               alt="Approved P&ID"
             />
           ) : (

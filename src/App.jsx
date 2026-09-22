@@ -32,10 +32,27 @@ const NAV = [
   ["Admin", "admin"],
 ];
 
+function routeFromHash() {
+  const raw = (window.location.hash || "").replace(/^#/, "");
+  if (raw === "/project/planning" || raw.startsWith("/project/planning")) {
+    return { screen: "project", params: { tab: "planning", focus: "M2" } };
+  }
+  return null;
+}
+
+function hashFromRoute(route) {
+  if (route.screen === "project" && route.params.tab === "planning") {
+    return "#/project/planning";
+  }
+  return "";
+}
+
 export function App() {
   const [s, d] = useReducer(reducer, null, load);
   const [msg, setMsg] = useState(null);
-  const [route, setRoute] = useState({ screen: "actions", params: {} });
+  const [route, setRoute] = useState(
+    () => routeFromHash() || { screen: "actions", params: {} },
+  );
   const [q, setQ] = useState("");
   const timer = useRef(null);
 
@@ -47,6 +64,23 @@ export function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "instant" });
   }, [route.screen, route.params.tab]);
+
+  // Keep a stable deep-link for CadPilot return_url
+  useEffect(() => {
+    const next = hashFromRoute(route);
+    if (next && window.location.hash !== next) {
+      history.replaceState(null, "", next);
+    }
+  }, [route.screen, route.params.tab]);
+
+  useEffect(() => {
+    const onHash = () => {
+      const fromHash = routeFromHash();
+      if (fromHash) setRoute(fromHash);
+    };
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, []);
 
   const toast = (t) => {
     setMsg(t);
