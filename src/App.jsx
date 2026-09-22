@@ -21,14 +21,12 @@ import { ExpensesTab } from "./screens/Expenses.jsx";
 import { TimelineTab, DocumentsTab, ChangesTab } from "./screens/Misc.jsx";
 import { RecordScreen } from "./screens/Record.jsx";
 import { SiteCapture } from "./screens/Site.jsx";
-import { CadPilotScreen } from "./screens/CadPilot.jsx";
 import { VendorsScreen, ReportsScreen, AdminScreen } from "./screens/Other.jsx";
 
 const NAV = [
   ["My actions", "actions"],
   ["Portfolio", "portfolio"],
   ["Project", "project"],
-  ["CadPilot", "cadpilot"],
   ["Vendors", "vendors"],
   ["Reports", "reports"],
   ["Admin", "admin"],
@@ -67,14 +65,19 @@ export function App() {
   };
   const go = (screen, params = {}) => {
     const planOk = sel.planningComplete(s);
+    let nextParams = { ...params };
+    // Opening a project with no tab → jump to the current incomplete phase/milestone
+    if (screen === "project" && !nextParams.tab) {
+      nextParams = { ...nextParams, ...sel.currentProjectRoute(s) };
+    }
     const wantsLockedTab =
-      screen === "project" && params.tab && LOCKED_TABS[params.tab];
+      screen === "project" && nextParams.tab && LOCKED_TABS[nextParams.tab];
     const wantsLockedScreen = screen === "bid"; // bid evaluation lives inside tender
     if (!planOk && (wantsLockedTab || wantsLockedScreen)) {
       redirectLockedToGate();
       return false;
     }
-    setRoute({ screen, params });
+    setRoute({ screen, params: nextParams });
     return true;
   };
   const resetWireframe = () => {
@@ -138,8 +141,6 @@ export function App() {
         return <BidVerify go={go} />;
       case "record":
         return <RecordScreen go={go} />;
-      case "cadpilot":
-        return <CadPilotScreen go={go} />;
       case "site":
         return <SiteCapture go={go} />;
       case "vendors":

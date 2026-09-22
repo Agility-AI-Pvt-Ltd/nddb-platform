@@ -33,6 +33,24 @@ export const sel = {
     const m = s.milestones.find((x) => x.id === "M3");
     return !!m && m.status === "Approved";
   },
+  /* First incomplete planning milestone, or M3 if all listed are approved but gate isn't. */
+  currentPlanningFocus: (s) => {
+    const open = (s.milestones || []).find((m) => m.status !== "Approved");
+    if (open) return open.id;
+    if (!sel.planningComplete(s)) return "M3";
+    return (s.milestones || [])[0]?.id || "M1";
+  },
+  /* Tab (+ optional focus) to open when entering a project with no tab chosen. */
+  currentProjectRoute: (s) => {
+    if (!sel.planningComplete(s)) {
+      return { tab: "planning", focus: sel.currentPlanningFocus(s) };
+    }
+    const pkgs = s.packages || [];
+    const tenderOpen =
+      pkgs.length === 0 || pkgs.some((p) => p.stage !== "Awarded");
+    if (tenderOpen) return { tab: "tender" };
+    return { tab: "execution" };
+  },
   tenderPct: (s) =>
     Math.round(
       (s.packages.filter((p) => p.stage === "Awarded").length /
@@ -70,6 +88,7 @@ export const sel = {
     const auto = {
       deliverables: sel.allApproved(s, "M3"),
       estimate: 199.6 <= 214.6,
+      cadpilot: (s.pid?.state || "").toLowerCase() === "approved",
     };
     return s.gate3checklist.map((c) => ({
       ...c,

@@ -77,6 +77,7 @@ export const seed = () => ({
     {id:"c2", label:"Estimate within sanction", auto:"estimate"},
     {id:"c3", label:"Rate basis dated within 6 months", auto:null},
     {id:"c4", label:"Package strategy comparison attached", auto:null},
+    {id:"c5", label:"CadPilot P&ID approved", auto:"cadpilot"},
   ],
 
   /* ---- 06 Tender and vendor ---- */
@@ -256,6 +257,7 @@ export const seed = () => ({
             state:"Drafted", when:"Yesterday 16:12",
             body:"Hindrance notice under clause 8.3.\nInterface: Foundations → mech. erection\nResponsibility: C-01 owes M-02\nStatus: Late 6 days\nEvidence: interface register entry, daily progress reports and site hand-over record for grid C4–C7.\nAction required: complete the owed work within the contract notice period."}],
   siteSubmissions:[], handovers:[],
+  pid:null,
 });
 
 /** Portfolio row for a new greenfield project (appends to `projects`; detail tabs still use `projects[0]`). */
@@ -329,6 +331,7 @@ export const seedFresh = () => ({
     {id:"c2", label:"Estimate within sanction", auto:"estimate"},
     {id:"c3", label:"Rate basis dated within 6 months", auto:null},
     {id:"c4", label:"Package strategy comparison attached", auto:null},
+    {id:"c5", label:"CadPilot P&ID approved", auto:"cadpilot"},
   ],
 
   stages:["Scoping","Tender ready","Published on GeM","Bids received","Evaluation","Awarded"],
@@ -368,4 +371,5 @@ export const seedFresh = () => ({
   handovers:[],
   checks:{},
   gateApproved:{},
+  pid:null,
 });

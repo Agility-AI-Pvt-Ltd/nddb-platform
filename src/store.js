@@ -156,6 +156,33 @@ export function reducer(s, a){
         "demo",
       );
     }
+
+    /* --- CadPilot P&ID (design) — persisted via localStorage with the rest of state --- */
+    case "PID_UPSERT": {
+      const prev = s.pid || {};
+      const pid = { ...prev, ...a.pid };
+      let t = { ...s, pid };
+      // Keep M2 P&I diagrams deliverable in step with CadPilot
+      if (pid.state === "approved" && t.deliverables?.M2) {
+        const list = t.deliverables.M2.map((d) =>
+          d.name.toLowerCase().includes("p&i") || d.id === "d202"
+            ? { ...d, status: "Approved", note: "Approved via CadPilot" + (pid.revision ? ` rev ${pid.revision}` : "") }
+            : d,
+        );
+        t = { ...t, deliverables: { ...t.deliverables, M2: list } };
+      }
+      return logged(
+        t,
+        pid.state === "approved"
+          ? `CadPilot P&ID approved` + (pid.revision ? ` rev ${pid.revision}` : "")
+          : `CadPilot P&ID updated` + (pid.state ? ` (${pid.state})` : ""),
+        s.user.name,
+        "cadpilot",
+      );
+    }
+    case "PID_CLEAR":
+      return logged({ ...s, pid: null }, "CadPilot P&ID cleared", s.user.name, "cadpilot");
+
     default: return s;
   }
 }
@@ -163,7 +190,26 @@ export function reducer(s, a){
 export function load(){
   try{
     const raw = localStorage.getItem(KEY);
-    if(raw){ const p = JSON.parse(raw); if(p && p.projects) return p; }
+    if(raw){
+      const p = JSON.parse(raw);
+      if(p && p.projects){
+        const next = { pid: null, ...p };
+        if (
+          Array.isArray(next.gate3checklist) &&
+          !next.gate3checklist.some((c) => c.id === "c5")
+        ) {
+          next.gate3checklist = [
+            ...next.gate3checklist,
+            {
+              id: "c5",
+              label: "CadPilot P&ID approved",
+              auto: "cadpilot",
+            },
+          ];
+        }
+        return next;
+      }
+    }
   }catch(e){}
   return seed();
 }
