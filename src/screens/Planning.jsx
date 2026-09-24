@@ -29,9 +29,11 @@ export function PlanningTab({ go, params }) {
     <>
       <div className="two">
         <div className="stack">
-          {s.milestones.map((m) => {
+          {s.milestones.map((m, idx) => {
             const c = sel.deliv(s, m.id),
               open = focus === m.id;
+            const prev = idx > 0 ? s.milestones[idx - 1] : null;
+            const prevOk = !prev || prev.status === "Approved";
             return (
               <section
                 key={m.id}
@@ -101,13 +103,24 @@ export function PlanningTab({ go, params }) {
                           <button
                             className="btn sm"
                             onClick={() => {
+                              const completes =
+                                !m.gate &&
+                                c.list.every(
+                                  (item) =>
+                                    item.id === dv.id ||
+                                    item.status === "Approved",
+                                );
                               d({
                                 type: "DELIV",
                                 mid: m.id,
                                 did: dv.id,
                                 status: "Approved",
                               });
-                              toast(dv.name + " approved");
+                              toast(
+                                completes
+                                  ? m.code + " approved — all deliverables are in"
+                                  : dv.name + " approved",
+                              );
                             }}
                           >
                             Approve
@@ -148,13 +161,34 @@ export function PlanningTab({ go, params }) {
                         <button
                           className="btn pri sm"
                           onClick={() => {
-                            if (m.id === "M3") setGate(true);
-                            else
+                            if (!prevOk) {
                               toast(
                                 "Gate " +
                                   m.gateNo +
-                                  " opens once the phase before it is approved",
+                                  " opens once " +
+                                  prev.code +
+                                  " is approved",
                               );
+                              return;
+                            }
+                            if (m.id === "M3") {
+                              setGate(true);
+                              return;
+                            }
+                            const left = sel.blockingDeliv(s, m.id);
+                            if (left.length) {
+                              toast(
+                                "Approve deliverables first: " +
+                                  left.map((b) => b.name).join(", "),
+                              );
+                              return;
+                            }
+                            d({
+                              type: "MSTATUS",
+                              mid: m.id,
+                              status: "Approved",
+                            });
+                            toast(m.code + " " + m.title + " approved");
                           }}
                         >
                           Submit gate
@@ -167,6 +201,11 @@ export function PlanningTab({ go, params }) {
                         </span>
                       )}
                     </div>
+                    {m.gate && m.status !== "Approved" && !prevOk && (
+                      <p className="print-note">
+                        Submit opens once {prev.code} is approved.
+                      </p>
+                    )}
                     {m.status === "Approved" && (
                       <p className="print-note">
                         Approved milestones freeze their deliverables. Later

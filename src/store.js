@@ -13,6 +13,43 @@ const nowStamp = () => {
 };
 let uid = 0; const nid = p => p + "_" + (++uid) + "_" + Date.now().toString(36);
 
+/* Non-gate milestones (M1) complete when every deliverable is approved.
+   Returning one reopens the milestone so later gates stay blocked. */
+function syncPlanning(s) {
+  if (!s?.milestones) return s;
+  let changed = false;
+  const milestones = s.milestones.map((m) => {
+    if (m.gate || m.frozen) return m;
+    const list = s.deliverables?.[m.id] || [];
+    if (!list.length) return m;
+    const allApproved = list.every((d) => d.status === "Approved");
+    if (allApproved && m.status !== "Approved") {
+      changed = true;
+      return { ...m, status: "Approved" };
+    }
+    if (!allApproved && m.status === "Approved") {
+      changed = true;
+      return { ...m, status: "In progress" };
+    }
+    return m;
+  });
+  return reflectFreshProject(changed ? { ...s, milestones } : s);
+}
+
+function reflectFreshProject(s) {
+  if (s.demoMode !== "fresh" || !s.projects?.length) return s;
+  const done = (s.milestones || []).filter((m) => m.status === "Approved").length;
+  const open = (s.milestones || []).find((m) => m.status !== "Approved");
+  const current = open
+    ? `${open.code}: ${open.title.charAt(0).toLowerCase()}${open.title.slice(1)}`
+    : "Planning complete";
+  const head = s.projects[0];
+  if (head.current === current && head.milestonesDone === done) return s;
+  const projects = s.projects.slice();
+  projects[0] = { ...head, current, milestonesDone: done };
+  return { ...s, projects };
+}
+
 function logged(s, what, who, tag){
   return {...s, log:[{id:nid("l"), what, who:who||"R. Kulkarni", when:nowStamp(), tag:tag||"change"}, ...s.log]};
 }
@@ -24,7 +61,7 @@ export function reducer(s, a){
     case "DELIV": {
       const list = s.deliverables[a.mid].map(d =>
         d.id===a.did ? {...d, status:a.status, note:a.status==="Returned"?("Returned: "+a.remarks):null, owner:d.owner} : d);
-      let t = {...s, deliverables:{...s.deliverables, [a.mid]:list}};
+      let t = syncPlanning({...s, deliverables:{...s.deliverables, [a.mid]:list}});
       const d = list.find(x=>x.id===a.did);
       return logged(t, `${a.mid} deliverable “${d.name}” set to ${a.status}`, s.user.name, "deliverable");
     }
@@ -32,7 +69,7 @@ export function reducer(s, a){
     /* --- milestone status --- */
     case "MSTATUS": {
       const ms = s.milestones.map(m => m.id===a.mid ? {...m, status:a.status, holdReason:a.reason||null} : m);
-      return logged({...s, milestones:ms}, `Milestone ${a.mid} moved to ${a.status}` + (a.reason?` — ${a.reason}`:""), s.user.name, "milestone");
+      return logged(reflectFreshProject({...s, milestones:ms}), `Milestone ${a.mid} moved to ${a.status}` + (a.reason?` — ${a.reason}`:""), s.user.name, "milestone");
     }
 
     /* --- approval chain step --- */
@@ -47,22 +84,22 @@ export function reducer(s, a){
       const ch = s.gate3chain.map(c => c.state==="Pending"||c.state==="Waiting" ? {...c, state:"Done "+nowStamp().replace("Today ","today ")} : c);
       // unblock everything the gate was holding
       const pk = s.packages.map(p => p.blockedByGate===3 ? {...p, blockedByGate:null, waiting:"Cleared by gate 3"} : p);
-      let t = {...s, milestones:ms, gate3chain:ch, packages:pk,
+      let t = reflectFreshProject({...s, milestones:ms, gate3chain:ch, packages:pk,
         actions:s.actions.filter(x=>x.id!=="t1"),
         approvalsWaiting:s.approvalsWaiting,
-        gateApproved:{...(s.gateApproved||{}), 3:true}};
+        gateApproved:{...(s.gateApproved||{}), 3:true}});
       t = logged(t, "Gate 3 approved — BOQ frozen at revision 4, tender T-118 unblocked, Q4 funds Rs 42 cr released", s.user.name, "approval");
       return t;
     }
     case "GATE_RETURN": {
       const ms = s.milestones.map(m => m.id===a.mid ? {...m, status:"Returned", returnRemarks:a.remarks} : m);
       const ch = s.gate3chain.map(c => c.step==="Prepared" ? {...c, state:"Returned, redo"} : c);
-      let t = {...s, milestones:ms, gate3chain:ch};
+      let t = reflectFreshProject({...s, milestones:ms, gate3chain:ch});
       return logged(t, `Gate 3 returned to preparer — ${a.remarks}`, s.user.name, "approval");
     }
     case "GATE_REJECT": {
       const ms = s.milestones.map(m => m.id===a.mid ? {...m, status:"On hold", holdReason:a.remarks} : m);
-      return logged({...s, milestones:ms}, `Gate 3 rejected — ${a.remarks}`, s.user.name, "approval");
+      return logged(reflectFreshProject({...s, milestones:ms}), `Gate 3 rejected — ${a.remarks}`, s.user.name, "approval");
     }
     case "CHECK": {
       const c = {...(s.checks||{})}; c[a.id] = a.on;
@@ -207,7 +244,7 @@ export function load(){
             },
           ];
         }
-        return next;
+        return syncPlanning(next);
       }
     }
   }catch(e){}
